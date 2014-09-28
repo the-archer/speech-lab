@@ -1,0 +1,18 @@
+Implementing K-Means Algo
+(This is what sir explained in class today, please comment if you find any mistake)
+1. Record 20 samples of each vowel (5). Cut the sample so that only the speech part of each sample is saved.
+2. Get the cepstral coefficients for each frame (+25%) in the sample. This would be the training set.
+3. Run the K-Means algo on this set. 
+4. For each iteration, log the output in a log file. 
+5. Plot a graph of Average Distortion vs No. of iterations.
+6. Do steps 3-5 multiple number of times and compare the graphs generated.
+
+
+Vowels recorded : /a/, /i/, /e/, /o/, /u/ 
+speech-samples/raw/
+a(01-20)
+i(01-20)
+e(01-20)
+o(01-20)
+u(01-20)
+
