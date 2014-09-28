@@ -86,6 +86,26 @@ void CalculateAlphas(long long* acc, double* alpha, int p) //Implementing Durbin
 }
 
 
+void CalculateCepCoeff(double* alpha, double* cep, int p, int q)
+{
+	for(int i=1; i<=q; i++)
+	{
+		double cur=0;
+		for(int k=1; k<i; k++)
+		{
+			cur += (k/double(i))*cep[k]*alpha[i-k];
+		}
+		if(i<=p)
+		{
+			cur += alpha[i];
+		}
+		
+		cep[i] = cur;
+
+	}
+
+
+}
 
 
 
@@ -118,9 +138,13 @@ int _tmain(int argc, _TCHAR* argv[])
 
 	CalculateAlphas(acc, alpha, p);
 
+	double* cep = new double[p+1];
+
+	CalculateCepCoeff(alpha, cep, p, p);
+
 	for(int i=0; i<=p; i++)
 	{
-		out << alpha[i] << endl;
+		out << cep[i] << endl;
 	}
 	cin >> a;
 	return 0;
