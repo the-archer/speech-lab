@@ -11,9 +11,14 @@
 
 #define PI 3.14159265
 
+const int p = 12;
+const int NormMax = 5000;
+const int fr_size = 320;
+const int fr_shift = 80;
+
 using namespace std;
 
-void CalculateAutoCorCoeff(long long* s, long long* acc, int N, int p)
+void CalculateAutoCorCoeff(double* s, double* acc, int N, int p)
 {
 	
 	
@@ -34,7 +39,7 @@ void CalculateAutoCorCoeff(long long* s, long long* acc, int N, int p)
 }
 
 
-void CalculateAlphas(long long* acc, double* alpha, int p) //Implementing Durbin's Algorithm
+void CalculateAlphas(double* acc, double* alpha, int p) //Implementing Durbin's Algorithm
 {
 	double* E = new double [p+1];
 	double* k = new double [p+1];
@@ -110,12 +115,12 @@ void CalculateCepCoeff(double* alpha, double* cep, int p, int q)
 
 }
 
-void ApplyHammingWindow(long long* s, int N)
+void ApplyHammingWindow(double* s, int N)
 {
 	for(int i=0; i<N; i++)
 	{
 		s[i] *= (0.54 - double(0.46)*cos((2*PI*i)/(N-1)));
-		cout << s[i] << endl;
+		
 	}
 
 
@@ -131,45 +136,171 @@ void ApplyParameterWeighting(double* cep, int p)
 }
 
 
-int _tmain(int argc, _TCHAR* argv[])
+void Normalise(double* sample, int len)
 {
-	int p = 12;
-	string input = "..\\..\\ceptest\\input.txt";
+	
+    double maximum = 0;
 
-	ifstream inp;
-	inp.open(input.c_str());
-	int a;
-	ofstream out;
-	out.open("output.txt");
-	int count=0;
-	long long *s = new long long[320];
+    for(int j=0; j<len; j++)
+    {
 
-	while(!inp.eof())
-	{
-		inp >> s[count];
-		//cout << a << endl;
-		count++;
-	}
+        if(sample[j]>0 && sample[j]>maximum)
+        {
+            maximum = sample[j];
 
-	cout << count << endl;
+        }
+        else if(sample[j]<0 && (-1*sample[j])>maximum)
+        {
+            maximum = -1*sample[j];
 
-	ApplyHammingWindow(s, count);
+        }
 
-	long long *acc = new long long[p+1];
-	CalculateAutoCorCoeff(s, acc, count, p);
+
+
+
+    }
+
+    double adjust = NormMax/maximum;
+
+    for(int i=0; i<len; i++)
+    {
+        sample[i] *= adjust;
+
+
+    }
+    return;
+
+
+}
+
+void GetFeatureVector(double* s, double* cep, int N, int p)
+{
+
+	ApplyHammingWindow(s, N);
+	double *acc = new double[p+1];
+	CalculateAutoCorCoeff(s, acc, N, p);
+
 	double* alpha = new double[p+1];
 
 	CalculateAlphas(acc, alpha, p);
 
-	double* cep = new double[p+1];
-
 	CalculateCepCoeff(alpha, cep, p, p);
 	ApplyParameterWeighting(cep, p);
-	for(int i=0; i<=p; i++)
+
+
+
+}
+
+
+double CalculateDistance(double* vec1, double* vec2, int p)
+{
+	double dist=0;
+	for(int i=1; i<=p; i++)
 	{
-		out << cep[i] << endl;
+		dist += pow((vec1[i] - vec2[i]), 2);
 	}
-	cin >> a;
+	return dist;
+}
+
+
+
+
+void BuildTrainingSet()
+{
+	ofstream out;
+	out.open("output.txt");
+	
+	fstream vec;
+	vec.open("..\\..\\speech-samples\\training\\trainingset.txt", fstream::app);
+
+	fstream map;
+	map.open("..\\..\\speech-samples\\training\\trainingmap.txt", fstream::app);
+
+
+	for(int i=1; i<=20; i++)
+	{
+		string input = "..\\..\\speech-samples\\raw\\txt\\";
+		string cur = "u";
+		if(i<10)
+		{
+			cur += "0";
+		}
+		cur +=  to_string((_ULonglong)i);
+		out << cur << endl;
+		input += cur + ".txt";
+		ifstream inp;
+		inp.open(input.c_str());
+		int len=0;
+		double* sample = new double[160000];
+		while(!inp.eof())
+		{
+			inp >> sample[len];
+			len++;
+		
+		}
+		len -= 1; //Correcting for an extra empty line at the end of every speech file
+		inp.close();
+		Normalise(sample, len);
+
+		for(int i=0; (i+fr_size)<=len; )
+		{
+			out << i << endl;
+			double* s = new double[fr_size];
+			for(int j=0; j<fr_size; j++)
+			{
+				s[j] = sample[i+j];
+			}
+			int N = fr_size;
+			double* cep = new double[p+1];
+			GetFeatureVector(s, cep, N, p);
+			for(int j=1; j<p; j++)
+			{
+				vec << cep[j] << " ";
+			}
+			vec << cep[p] << endl;
+			map << cur << endl;
+
+			if((i+fr_size+fr_shift)>len && (i+fr_size)<len)
+			{
+				i += (len - i - fr_size);
+				
+			}
+			else
+			{
+				i += fr_shift;
+			}
+
+
+		}
+
+
+	}
+
+
+	
+
+	
+
+	
+	out.close();
+	vec.close();
+	return;
+
+
+
+}
+
+
+
+
+int _tmain(int argc, _TCHAR* argv[])
+{
+		
+	
+
+		
+
+
 	return 0;
 }
 
