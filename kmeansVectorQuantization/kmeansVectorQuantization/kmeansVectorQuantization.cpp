@@ -7,6 +7,9 @@
 #include <fstream>
 #include <stdlib.h>
 #include <iostream>
+#include <math.h>       
+
+#define PI 3.14159265
 
 using namespace std;
 
@@ -107,7 +110,25 @@ void CalculateCepCoeff(double* alpha, double* cep, int p, int q)
 
 }
 
+void ApplyHammingWindow(long long* s, int N)
+{
+	for(int i=0; i<N; i++)
+	{
+		s[i] *= (0.54 - double(0.46)*cos((2*PI*i)/(N-1)));
+		cout << s[i] << endl;
+	}
 
+
+}
+
+void ApplyParameterWeighting(double* cep, int p)
+{
+	for(int i=1; i<=p; i++)
+	{
+		cep[i] *= (1 + (p/2)*sin((PI*i)/p));
+	}
+
+}
 
 
 int _tmain(int argc, _TCHAR* argv[])
@@ -132,6 +153,8 @@ int _tmain(int argc, _TCHAR* argv[])
 
 	cout << count << endl;
 
+	ApplyHammingWindow(s, count);
+
 	long long *acc = new long long[p+1];
 	CalculateAutoCorCoeff(s, acc, count, p);
 	double* alpha = new double[p+1];
@@ -141,7 +164,7 @@ int _tmain(int argc, _TCHAR* argv[])
 	double* cep = new double[p+1];
 
 	CalculateCepCoeff(alpha, cep, p, p);
-
+	ApplyParameterWeighting(cep, p);
 	for(int i=0; i<=p; i++)
 	{
 		out << cep[i] << endl;
