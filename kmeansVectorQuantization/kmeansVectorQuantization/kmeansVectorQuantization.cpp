@@ -39,7 +39,7 @@ void CalculateAlphas(long long* acc, double* alpha, int p) //Implementing Durbin
 	double** alphaDurbin = new double* [p+1];
 	for(int i=0; i<=p; i++)
 	{
-		alphaDurbin[p] = new double [p+1];
+		alphaDurbin[i] = new double [p+1];
 	}
 
 	E[0] = acc[0];
@@ -112,11 +112,15 @@ int _tmain(int argc, _TCHAR* argv[])
 
 	cout << count << endl;
 
-	long long *acc = new long long[13];
+	long long *acc = new long long[p+1];
 	CalculateAutoCorCoeff(s, acc, count, p);
+	double* alpha = new double[p+1];
+
+	CalculateAlphas(acc, alpha, p);
+
 	for(int i=0; i<=p; i++)
 	{
-		out << acc[i] << endl;
+		out << alpha[i] << endl;
 	}
 	cin >> a;
 	return 0;
