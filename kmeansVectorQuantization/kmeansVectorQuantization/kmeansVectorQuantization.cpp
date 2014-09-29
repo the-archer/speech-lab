@@ -368,6 +368,7 @@ void ChooseInitialCodeVec(vector<vector<double>>& fvec, vector<vector<double>>& 
 		int r = rand()%tsetsize;
 		if(gen[r])
 		{
+			i--;
 			continue;
 		}
 		gen[r]=true;
@@ -404,9 +405,11 @@ void AssignToCluster(vector<vector<double>>& fvec, vector<vector<double>>& codev
 			}
 
 		}
-		cluster[j].append(i);
+		cluster[low].push_back(i);
 
 	}
+
+
 
 	return;
 }
@@ -415,27 +418,110 @@ void UpdateCodeVec(vector<vector<double>>& fvec, vector<vector<double>>& codevec
 {
 	for(int i=0; i<cb_size; i++)
 	{
-		vector<double> centroid(13);
-		for(int j=0; j<cluster[i].size(); j++)
+		if(cluster[i].size()==0) //If empty cluster, choose another random codevector
 		{
+			srand (time(NULL));
+			int r = rand()%(fvec.size());
+
+			codevec[i] = fvec[r];
+			continue;
 
 		}
+		
+		vector<double> centroid(p+1, 0);
+	
+		int count[5]={0};
+		for(int j=0; j<cluster[i].size(); j++)
+		{
+			count[(int)fvec[cluster[i][j]][0]]++;
+
+			for(int k=1; k<=p; k++)
+			{
+				centroid[k] += (fvec[cluster[i][j]][k]/cluster[i].size());
+			}
+
+
+		}
+
+		codevec[i]  = centroid;
+
+		int max_count=0;
+		int vow=-1;
+		for(int j=0; j<5; j++)
+		{
+			if(count[j]>max_count)
+			{
+				max_count=count[j];
+				vow = j;
+			}
+		}
+		codevec[i][0]=vow;
 	}
+
+	return;
 }
 
+double CalculateTotalDistortion(vector<vector<double>>& fvec, vector<vector<double>>& codevec, vector<vector<int>>& cluster)
+{
+	double dist = 0;
+	for(int i=0; i<cluster.size(); i++)
+	{
+		for(int j=0; j<cluster[i].size(); j++)
+		{
+			dist += CalculateEuclDistance(fvec[cluster[i][j]], codevec[i]);
+		}
+	}
 
+	return dist;
+}
+
+void RunKMeansAlgo(vector<vector<double>>& fvec, vector<vector<double>>& codevec, int MaxIter)
+{
+	vector<vector<int>> cluster;
+	ChooseInitialCodeVec(fvec, codevec, cluster);
+	ofstream iter;
+	iter.open("itervsdist.txt");
+	for(int i=1; i<=MaxIter; i++)
+	{
+		AssignToCluster(fvec, codevec, cluster);
+		UpdateCodeVec(fvec, codevec, cluster);
+		double dist = CalculateTotalDistortion(fvec, codevec, cluster);
+		iter << i << " " << dist << endl;
+		cout << i << " " << dist << endl;
+		
+
+	}
+	iter.close();
+	return;
+
+}
 
 
 int _tmain(int argc, _TCHAR* argv[])
 {
 		
-	vector <vector<double>> cep;
+	vector <vector<double>> fvec;
+	vector <vector<double>> codevec;
 
-	LoadTrainingSet(cep, p);
+	
+	LoadTrainingSet(fvec);
+	RunKMeansAlgo(fvec, codevec, 10);
 
+	ofstream cb;
+	cb.open("codebook.txt");
+	for(int i=0; i<cb_size; i++)
+	{
+		for(int j=0; j<p; j++)
+		{
+			cb << codevec[i][j] << " " ;
+		}
+		cb << codevec[i][p] << endl;
 
-	//cout << cep[3200][0] << endl;
+	}
 
+	cb.close();
+
+	
 	
 	
 	
