@@ -398,7 +398,7 @@ void AssignToCluster(vector<vector<double>>& fvec, vector<vector<double>>& codev
 		for(int j=0; j<cb_size; j++)
 		{
 			double dist = CalculateEuclDistance(fvec[i], codevec[j]); 
-			if(dist < DBL_MAX)
+			if(dist < min_dist)
 			{
 				min_dist = dist;
 				low = j;
@@ -440,10 +440,12 @@ void UpdateCodeVec(vector<vector<double>>& fvec, vector<vector<double>>& codevec
 				centroid[k] += (fvec[cluster[i][j]][k]/cluster[i].size());
 			}
 
+			
+
 
 		}
-
 		codevec[i]  = centroid;
+		
 
 		int max_count=0;
 		int vow=-1;
@@ -475,6 +477,21 @@ double CalculateTotalDistortion(vector<vector<double>>& fvec, vector<vector<doub
 	return dist;
 }
 
+void PrintCluster(vector<vector<int>>& cluster)
+{
+	ofstream cl;
+	cl.open("cluster.txt");
+	for(int i=0; i<cb_size; i++)
+	{
+		cl << i << ": " ;
+		for(int j=0; j<cluster[i].size(); j++)
+		{
+			cl << cluster[i][j] << " ";
+		}
+		cl << endl;
+	}
+}
+
 void RunKMeansAlgo(vector<vector<double>>& fvec, vector<vector<double>>& codevec, int MaxIter)
 {
 	vector<vector<int>> cluster;
@@ -484,6 +501,7 @@ void RunKMeansAlgo(vector<vector<double>>& fvec, vector<vector<double>>& codevec
 	for(int i=1; i<=MaxIter; i++)
 	{
 		AssignToCluster(fvec, codevec, cluster);
+		PrintCluster(cluster);
 		UpdateCodeVec(fvec, codevec, cluster);
 		double dist = CalculateTotalDistortion(fvec, codevec, cluster);
 		iter << i << " " << dist << endl;
