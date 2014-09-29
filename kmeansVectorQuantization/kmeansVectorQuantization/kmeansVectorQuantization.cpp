@@ -9,6 +9,8 @@
 #include <iostream>
 #include <math.h>   
 #include <vector>
+#include <time.h>
+#include <float.h>
 
 #define PI 3.14159265
 
@@ -194,7 +196,7 @@ void GetFeatureVector(double* s, double* cep, int N, int p)
 }
 
 
-double CalculateDistance(double* vec1, double* vec2, int p)
+double CalculateEuclDistance(vector<double>& vec1, vector<double>& vec2)
 {
 	double dist=0;
 	for(int i=1; i<=p; i++)
@@ -292,7 +294,7 @@ void BuildTrainingSet()
 
 }
 
-void LoadTrainingSet(vector<vector<double>>& cep, int p)
+void LoadTrainingSet(vector<vector<double>>& cep)
 {
 	ifstream vec;
 	vec.open("..\\..\\speech-samples\\training\\trainingset.txt");
@@ -349,6 +351,77 @@ void LoadTrainingSet(vector<vector<double>>& cep, int p)
 }
 
 
+void ChooseInitialCodeVec(vector<vector<double>>& fvec, vector<vector<double>>& codevec, vector<vector<int>>& cluster)
+{
+	int tsetsize = fvec.size();
+	bool* gen = new bool[tsetsize];
+	
+	for(int i=0; i<tsetsize; i++)
+	{
+		gen[i] = false;
+		
+	}
+	srand (time(NULL));
+
+	for(int i=0; i<cb_size; i++)
+	{
+		int r = rand()%tsetsize;
+		if(gen[r])
+		{
+			continue;
+		}
+		gen[r]=true;
+
+		codevec.push_back(fvec[r]);
+		vector<int> emp;
+		cluster.push_back(emp);
+
+	}
+
+	return;
+
+}
+
+void AssignToCluster(vector<vector<double>>& fvec, vector<vector<double>>& codevec, vector<vector<int>>& cluster)
+{
+	int tsetsize = fvec.size();
+	for(int i=0; i<cb_size; i++)
+	{
+		cluster[i].empty();
+	}
+
+	for(int i=0; i<tsetsize; i++)
+	{
+		double min_dist = DBL_MAX;
+		int low=-1;
+		for(int j=0; j<cb_size; j++)
+		{
+			double dist = CalculateEuclDistance(fvec[i], codevec[j]); 
+			if(dist < DBL_MAX)
+			{
+				min_dist = dist;
+				low = j;
+			}
+
+		}
+		cluster[j].append(i);
+
+	}
+
+	return;
+}
+
+void UpdateCodeVec(vector<vector<double>>& fvec, vector<vector<double>>& codevec, vector<vector<int>>& cluster)
+{
+	for(int i=0; i<cb_size; i++)
+	{
+		vector<double> centroid(13);
+		for(int j=0; j<cluster[i].size(); j++)
+		{
+
+		}
+	}
+}
 
 
 
