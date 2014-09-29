@@ -35,7 +35,7 @@ void CalculateAutoCorCoeff(double* s, double* acc, int N, int p)
 				
 				
 			}
-			//cout << acc[k] << endl;
+		
 			
 	}
 
