@@ -388,7 +388,7 @@ void AssignToCluster(vector<vector<double>>& fvec, vector<vector<double>>& codev
 	int tsetsize = fvec.size();
 	for(int i=0; i<cb_size; i++)
 	{
-		cluster[i].empty();
+		cluster[i].clear();
 	}
 
 	for(int i=0; i<tsetsize; i++)
@@ -420,6 +420,7 @@ void UpdateCodeVec(vector<vector<double>>& fvec, vector<vector<double>>& codevec
 	{
 		if(cluster[i].size()==0) //If empty cluster, choose another random codevector
 		{
+			cout << "Empty Cluster!" << endl;
 			srand (time(NULL));
 			int r = rand()%(fvec.size());
 
@@ -466,14 +467,16 @@ void UpdateCodeVec(vector<vector<double>>& fvec, vector<vector<double>>& codevec
 double CalculateTotalDistortion(vector<vector<double>>& fvec, vector<vector<double>>& codevec, vector<vector<int>>& cluster)
 {
 	double dist = 0;
-	for(int i=0; i<cluster.size(); i++)
+	
+	for(int i=0; i<cb_size; i++)
 	{
 		for(int j=0; j<cluster[i].size(); j++)
 		{
 			dist += CalculateEuclDistance(fvec[cluster[i][j]], codevec[i]);
+			
 		}
 	}
-
+	
 	return dist;
 }
 
@@ -492,10 +495,30 @@ void PrintCluster(vector<vector<int>>& cluster)
 	}
 }
 
+void PrintCodeVec(vector<vector<double>>& codevec)
+{
+	ofstream cv;
+	cv.open("codevector.txt");
+	for(int i=0; i<cb_size; i++)
+	{
+		for(int j=0; j<=p; j++)
+		{
+			cv << codevec[i][j] << " " ;
+		}
+		cv <<  endl;
+	}
+}
+
+
 void RunKMeansAlgo(vector<vector<double>>& fvec, vector<vector<double>>& codevec, int MaxIter)
 {
 	vector<vector<int>> cluster;
 	ChooseInitialCodeVec(fvec, codevec, cluster);
+	//PrintCodeVec(codevec);
+	//PrintCluster(cluster);
+	/*cout << "Press enter to continue" << endl;
+	string dum;
+	cin >> dum;*/
 	ofstream iter;
 	iter.open("itervsdist.txt");
 	for(int i=1; i<=MaxIter; i++)
@@ -504,6 +527,7 @@ void RunKMeansAlgo(vector<vector<double>>& fvec, vector<vector<double>>& codevec
 		PrintCluster(cluster);
 		UpdateCodeVec(fvec, codevec, cluster);
 		double dist = CalculateTotalDistortion(fvec, codevec, cluster);
+		dist = dist/fvec.size();
 		iter << i << " " << dist << endl;
 		cout << i << " " << dist << endl;
 		
@@ -523,7 +547,7 @@ int _tmain(int argc, _TCHAR* argv[])
 
 	
 	LoadTrainingSet(fvec);
-	RunKMeansAlgo(fvec, codevec, 10);
+	RunKMeansAlgo(fvec, codevec, 50);
 
 	ofstream cb;
 	cb.open("codebook.txt");
