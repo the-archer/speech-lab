@@ -7,7 +7,8 @@
 #include <fstream>
 #include <stdlib.h>
 #include <iostream>
-#include <math.h>       
+#include <math.h>   
+#include <vector>
 
 #define PI 3.14159265
 
@@ -15,6 +16,7 @@ const int p = 12;
 const int NormMax = 5000;
 const int fr_size = 320;
 const int fr_shift = 80;
+const int cb_size = 128;
 
 using namespace std;
 
@@ -290,15 +292,83 @@ void BuildTrainingSet()
 
 }
 
+void LoadTrainingSet(vector<vector<double>>& cep, int p)
+{
+	ifstream vec;
+	vec.open("..\\..\\speech-samples\\training\\trainingset.txt");
+
+	ifstream map;
+	map.open("..\\..\\speech-samples\\training\\trainingmap.txt");
+
+	string vowel;
+
+	int count=0;
+
+	while(!vec.eof())
+	{
+		map >> vowel;
+
+		vector<double> cur(p+1);
+		
+		switch(vowel[0])
+		{
+		case 'a':
+			cur[0]=0;
+			break;
+		case 'e':
+			cur[0]=1;
+			break;
+		case 'i':
+			cur[0]=2;
+			break;
+		case 'o':
+			cur[0]=3;
+			break;
+		case 'u':
+			cur[0]=4;
+			break;
+	
+
+		}
+		
+		for(int i=1; i<=p; i++)
+		{
+			vec >> cur[i];
+
+		}
+
+		cep.push_back(cur);
+
+	}
+
+	vec.close();
+	map.close();
+
+	return;
+
+}
+
+
+
 
 
 
 int _tmain(int argc, _TCHAR* argv[])
 {
 		
-	
+	vector <vector<double>> cep;
 
-		
+	LoadTrainingSet(cep, p);
+
+
+	//cout << cep[3200][0] << endl;
+
+	
+	
+	
+	
+	int a;
+	cin >> a;
 
 
 	return 0;
