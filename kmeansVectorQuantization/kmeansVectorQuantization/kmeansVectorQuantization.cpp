@@ -538,10 +538,8 @@ void RunKMeansAlgo(vector<vector<double>>& fvec, vector<vector<double>>& codevec
 
 }
 
-
-int _tmain(int argc, _TCHAR* argv[])
+void GenerateCodeBook()
 {
-		
 	vector <vector<double>> fvec;
 	vector <vector<double>> codevec;
 
@@ -562,6 +560,14 @@ int _tmain(int argc, _TCHAR* argv[])
 	}
 
 	cb.close();
+}
+
+int _tmain(int argc, _TCHAR* argv[])
+{
+
+	//GenerateCodeBook();
+		
+	
 
 	
 	
