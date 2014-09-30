@@ -11,6 +11,7 @@
 #include <vector>
 #include <time.h>
 #include <float.h>
+#include <windows.h>
 
 #define PI 3.14159265
 
@@ -21,6 +22,23 @@ const int fr_shift = 80;
 const int cb_size = 128;
 
 using namespace std;
+
+
+void GetAllFiles(vector<string>& fname, string dirname)
+{
+	HANDLE hFind;
+	WIN32_FIND_DATAA data;
+
+	hFind = FindFirstFileA(dirname.c_str(), &data);
+	if (hFind != INVALID_HANDLE_VALUE) {
+	  do {
+		//printf("%s\n", data.cFileName);
+		fname.push_back(data.cFileName);
+	  } while (FindNextFileA(hFind, &data));
+	  FindClose(hFind);
+	}
+
+}
 
 void CalculateAutoCorCoeff(double* s, double* acc, int N, int p)
 {
@@ -199,6 +217,8 @@ void GetFeatureVector(double* s, double* cep, int N, int p)
 double CalculateEuclDistance(vector<double>& vec1, vector<double>& vec2)
 {
 	double dist=0;
+	int tokwt[13]={0,1,3,7,13,19,22,25,33,42,50,56,61};
+	
 	for(int i=1; i<=p; i++)
 	{
 		dist += pow((vec1[i] - vec2[i]), 2);
@@ -562,13 +582,159 @@ void GenerateCodeBook()
 	cb.close();
 }
 
+void LoadCodeBook(vector<vector<double>>& codevec)
+{
+	ifstream cb;
+	cb.open("codebook.txt");
+
+	while(!cb.eof())
+	{
+		vector<double> cur(p+1);
+		for(int j=0; j<=p; j++)
+		{
+			cb >> cur[j];
+		}
+		codevec.push_back(cur);
+
+	}
+	return;
+}
+
+int AssignLabel(vector<double>& cep, vector<vector<double>>& codevec)
+{
+	double dist = DBL_MAX;
+	int lab=-1;
+	for(int i=0; i<codevec.size(); i++)
+	{
+		double cur = CalculateEuclDistance(cep, codevec[i]);
+		if(cur<dist)
+		{
+			dist = cur;
+			lab = codevec[i][0];
+		}
+	}
+
+	return lab;
+}
+
+void TestCodeBook()
+{
+	vector<vector<double>> codevec;
+
+	LoadCodeBook(codevec);
+	vector<string> fname;
+	string dirname = "..\\..\\speech-samples\\test\\*.txt";
+	GetAllFiles(fname, dirname);
+
+	int correct=0;
+	int total=fname.size();
+
+	for(int i=0; i<fname.size(); i++)
+	{
+		string path = "..\\..\\speech-samples\\test\\";
+		cout << fname[i] << endl;
+		ifstream inp;
+		path += fname[i];
+		inp.open(path.c_str());
+		int actual = -1;
+		switch(fname[i][0])
+		{
+		case 'a':
+			actual=0;
+			break;
+		case 'e':
+			actual=1;
+			break;
+		case 'i':
+			actual=2;
+			break;
+		case 'o':
+			actual=3;
+			break;
+		case 'u':
+			actual=4;
+			break;
+		}
+		double* sample = new double[160000];
+		int len=0;
+		while(!inp.eof())
+		{
+			inp >> sample[len];
+			len++;
+		}
+
+		len -= 1; //Correcting for an extra empty line at the end of every speech file
+		inp.close();
+		Normalise(sample, len);
+		int labcount[5]={0};
+		int framecount=0;
+		for(int k=0; (k+fr_size)<=len; )
+		{
+			framecount++;
+			//out << i << endl;
+			double* s = new double[fr_size];
+			for(int j=0; j<fr_size; j++)
+			{
+				s[j] = sample[k+j];
+			}
+			int N = fr_size;
+			double* cep = new double[p+1];
+			GetFeatureVector(s, cep, N, p);
+			vector<double> cepvec(p+1);
+			for(int m=0; m<=p; m++)
+			{
+				cepvec[m] = cep[m];
+			}
+			int lab = AssignLabel(cepvec, codevec);
+			
+			labcount[lab]++;
+
+			if((k+fr_size+fr_shift)>len && (k+fr_size)<len)
+			{
+				k += (len - k - fr_size);
+				
+			}
+			else
+			{
+				k += fr_shift;
+			}
+
+
+		}
+
+		int max=0;
+		int val=-1;
+
+		for(int m=0; m<5; m++)
+		{
+			if(labcount[m]>max)
+			{
+				max = labcount[m];
+				val = m;
+			}
+		}
+		cout << val << endl;
+		cout << "Certainty: " << labcount[val]/double(framecount)*100 << endl;
+		if(actual==val)
+		{
+			correct++;
+			cout << "Correct: /" << fname[i][0] << "/" << endl;
+		}
+
+
+	}
+	cout << "Accuracy: " << double(correct)/total*100 << endl;
+
+}
+
 int _tmain(int argc, _TCHAR* argv[])
 {
 
-	//GenerateCodeBook();
-		
+	GenerateCodeBook();
+	TestCodeBook();
 	
-
+	
+	
 	
 	
 	
