@@ -16,3 +16,11 @@ e(01-20)
 o(01-20)
 u(01-20)
 
+
+
+I am instructed by the course coordinator Dr. Pradip K Das to inform you all to upload your assignments of "k-means" and "LBG" as complete zipped file containing complete visual studio project with proper input-output files including log files. The deadline for submission is 10:00 pm Friday, 31st October 2014.
+Note:
+1. The expected outputs are the codebook & a graph showing the distortion vs no. of iterations.
+2. Log file should contain the various intermediate outputs like the no. of vectors that are allotted to each cluster as you go through the k-means algorithm. Also the distortion for the current codebook at that time.
+3. For LBG, the codebook and log outputs should be for each level of codebook generated. (Eg. for codebook of size 2,4,...).
+4. There should be a README file indicating where the inputs, outputs, graphs and log files are.
