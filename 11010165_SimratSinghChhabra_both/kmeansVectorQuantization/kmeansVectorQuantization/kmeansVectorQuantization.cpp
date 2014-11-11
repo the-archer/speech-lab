@@ -19,7 +19,7 @@ const int p = 12;
 const int NormMax = 5000;
 const int fr_size = 320;
 const int fr_shift = 80;
-const int cb_size = 128;
+const int cb_size = 32;
 const double epsilon = 0.02;
 const double delta = 0.000000000001;
 using namespace std;
@@ -241,21 +241,25 @@ void BuildTrainingSet()
 
 	fstream map;
 	map.open("..\\..\\speech-samples\\training\\trainingmap.txt", fstream::app);
+	vector<string> fname;
+	string dirname = "..\\..\\speech-samples\\classify\\*.txt";
+	GetAllFiles(fname, dirname);
 
-
-	for(int i=1; i<=20; i++)
+	for(int i=0; i<fname.size(); i++)
 	{
-		string input = "..\\..\\speech-samples\\raw\\txt\\";
-		string cur = "u";
-		if(i<10)
-		{
-			cur += "0";
-		}
-		cur +=  to_string((_ULonglong)i);
-		out << cur << endl;
-		input += cur + ".txt";
+
+		string path = "..\\..\\speech-samples\\classify\\";
+		cout << fname[i] << endl;
 		ifstream inp;
-		inp.open(input.c_str());
+		path += fname[i];
+		inp.open(path.c_str());
+		//string input = "..\\..\\speech-samples\\raw\\txt\\";
+		//string cur = "u";
+		
+		
+		
+	
+		
 		int len=0;
 		double* sample = new double[160000];
 		while(!inp.eof())
@@ -284,7 +288,7 @@ void BuildTrainingSet()
 				vec << cep[j] << " ";
 			}
 			vec << cep[p] << endl;
-			map << cur << endl;
+			map << 0 << endl;
 
 			if((i+fr_size+fr_shift)>len && (i+fr_size)<len)
 			{
@@ -649,7 +653,22 @@ void RunModifiedKMeansAlgo(vector<vector<double>>& fvec, vector<vector<double>>&
 
 }
 
+int AssignCodeVector(vector<double>& cep, vector<vector<double>>& codevec)
+{
+	double dist = DBL_MAX;
+	int lab=-1;
+	for(int i=0; i<codevec.size(); i++)
+	{
+		double cur = CalculateEuclDistance(cep, codevec[i]);
+		if(cur<dist)
+		{
+			dist = cur;
+			lab = i+1;
+		}
+	}
 
+	return lab;
+}
 
 
 void GenerateCodeBookUsingKMeans(bool modifiedKMeans)
@@ -662,7 +681,7 @@ void GenerateCodeBookUsingKMeans(bool modifiedKMeans)
 	if(!modifiedKMeans)
 	RunKMeansAlgo(fvec, codevec, 50);
 	else
-	RunModifiedKMeansAlgo(fvec, codevec, 50);
+	RunModifiedKMeansAlgo(fvec, codevec, 100);
 	
 	ofstream cb;
 	cb.open("codebook.txt");
@@ -678,8 +697,6 @@ void GenerateCodeBookUsingKMeans(bool modifiedKMeans)
 
 	cb.close();
 }
-
-
 
 void LoadCodeBook(vector<vector<double>>& codevec)
 {
@@ -699,6 +716,93 @@ void LoadCodeBook(vector<vector<double>>& codevec)
 	return;
 }
 
+void ClassifyVectors()
+{
+	vector<vector<double>> codevec;
+
+	LoadCodeBook(codevec);
+
+	vector<string> fname;
+	string dirname = "..\\..\\speech-samples\\classify\\*.txt";
+	GetAllFiles(fname, dirname);
+
+	for(int i=0; i<fname.size(); i++)
+	{
+		string path = "..\\..\\speech-samples\\classify\\";
+		cout << fname[i] << endl;
+		ifstream inp;
+		path += fname[i];
+		inp.open(path.c_str());
+		vector<int> quant;
+		int len=0;
+		double* sample = new double[160000];
+		while(!inp.eof())
+		{
+			inp >> sample[len];
+			len++;
+		}
+
+		len -= 1; //Correcting for an extra empty line at the end of every speech file
+		inp.close();
+		Normalise(sample, len);
+		int labcount[5]={0};
+		int framecount=0;
+		for(int k=0; (k+fr_size)<=len; )
+		{
+			framecount++;
+			//out << i << endl;
+			double* s = new double[fr_size];
+			for(int j=0; j<fr_size; j++)
+			{
+				s[j] = sample[k+j];
+			}
+			int N = fr_size;
+			double* cep = new double[p+1];
+			GetFeatureVector(s, cep, N, p);
+			vector<double> cepvec(p+1);
+			for(int m=0; m<=p; m++)
+			{
+				cepvec[m] = cep[m];
+			}
+			int lab = AssignCodeVector(cepvec, codevec);
+			
+			//labcount[lab]++;
+			quant.push_back(lab);
+
+			if((k+fr_size+fr_shift)>len && (k+fr_size)<len)
+			{
+				k += (len - k - fr_size);
+				
+			}
+			else
+			{
+				k += fr_shift;
+			}
+		
+	
+		}
+		delete(sample);
+		//double* sample = new double[160000];
+		string path2 = "..\\..\\speech-samples\\classifyout\\";
+		ofstream oop;
+		path2 += fname[i];
+		oop.open(path2.c_str());
+		for(int i=0; i<quant.size(); i++)
+		{
+			oop << quant[i] << endl;
+		}
+		oop.close();
+
+	}
+
+	return;
+
+}
+
+
+
+
+
 int AssignLabel  (vector<double>& cep, vector<vector<double>>& codevec)
 {
 	double dist = DBL_MAX;
@@ -715,6 +819,9 @@ int AssignLabel  (vector<double>& cep, vector<vector<double>>& codevec)
 
 	return lab;
 }
+
+
+
 
 void TestCodeBook()
 {
@@ -828,15 +935,20 @@ void TestCodeBook()
 
 int _tmain(int argc, _TCHAR* argv[])
 {
+	
 	int choice=0;
-	cout << "1. Build Codebook using K Means \n2. Build Codebook using Modified K-Means\n3. Test Codebook\nChoose (1/2/3):";
+	cout << "1. Build Codebook using K Means \n2. Build Codebook using Modified K-Means\n3. Test Codebook\n 4.Classify feature vectors\n 5.Build Training Set\nChoose (1/2/3/4/5):";
 	cin >> choice;
 	
 	choice-=1;
 	if(choice<2)
 	GenerateCodeBookUsingKMeans(choice);
-	else
+	else if(choice==2)
 	TestCodeBook();
+	else if(choice==3)
+	ClassifyVectors();
+	else
+	BuildTrainingSet();
 	
 	
 	

@@ -2,8 +2,16 @@
 //
 
 #include "stdafx.h"
+#include <string.h>
+#include <string>
+#include <fstream>
+#include <stdlib.h>
+#include <iostream>
+#include <math.h>   
 #include <vector>
-#include<iostream>
+#include <time.h>
+#include <float.h>
+#include <windows.h>
 
 using namespace std;
 
@@ -11,8 +19,24 @@ int N=5;
 int M=32;
 
 
+void GetAllFiles(vector<string>& fname, string dirname)
+{
+	HANDLE hFind;
+	WIN32_FIND_DATAA data;
 
-void ForwardProcedure(vector<vector<long double>>& a, vector<vector<long double>>& b, vector<long double>& start, vector<int>& obs, int T, vector<vector<long double>>& alpha)
+	hFind = FindFirstFileA(dirname.c_str(), &data);
+	if (hFind != INVALID_HANDLE_VALUE) {
+	  do {
+		//printf("%s\n", data.cFileName);
+		fname.push_back(data.cFileName);
+	  } while (FindNextFileA(hFind, &data));
+	  FindClose(hFind);
+	}
+
+}
+
+
+long double ForwardProcedure(vector<vector<long double>>& a, vector<vector<long double>>& b, vector<long double>& start, vector<int>& obs, int T, vector<vector<long double>>& alpha)
 {
 	
 	vector<long double> init;
@@ -49,7 +73,7 @@ void ForwardProcedure(vector<vector<long double>>& a, vector<vector<long double>
 		prob+=alpha[T][i];
 	}
 
-	return;
+	return prob;
 
 }
 
@@ -106,10 +130,31 @@ void CheckZeroEntriesInB(vector<vector<long double>>& b)
 				zeroes+=1;
 			}
 
+			
+
+		}
+		long double a = 1E-20;
+		
+		if(a*zeroes>max)
+		{
+			cout << "Problem in checking zeroes" << endl;
+		}
+		else
+		{
+			for(int j=1; j<=M; j++)
+			{
+				if(b[i][j]==0)
+				{
+					b[i][j]+=a;
+				}
+			}
+			b[i][ind]-=a*zeroes;
 		}
 
-		if
+	
 	}
+
+	return;
 
 }
 
@@ -120,6 +165,7 @@ void ParameterReestimation(vector<vector<long double>>& a, vector<vector<long do
 	vector<vector<long double> > beta;
 	ForwardProcedure(a, b, start, obs, T, alpha);
 	BackwardProcedure(a, b, start, obs, T, beta);
+	
 	vector<vector<vector<long double> > > prob;
 	for(int i=0; i<=T; i++)
 	{
@@ -172,6 +218,7 @@ void ParameterReestimation(vector<vector<long double>>& a, vector<vector<long do
 			{
 				sum += prob[t][i][j];
 			}
+			gamma[t][i]=sum;
 		}
 
 	}
@@ -217,7 +264,7 @@ void ParameterReestimation(vector<vector<long double>>& a, vector<vector<long do
 		}
 	}
 
-	CheckZeroEntriesinB(b);
+	CheckZeroEntriesInB(b);
 
 	return;
 }
@@ -290,7 +337,7 @@ long double ViterbiAlgo(vector<vector<long double>>& a, vector<vector<long doubl
 		states.push_back(0);
 	}
 	states[T]=st;
-	for(int t=T-1; T>0; t--)
+	for(int t=T-1; t>0; t--)
 	{
 		states[t]=maxm[t+1][states[t+1]];
 	}
@@ -320,15 +367,317 @@ void Initialise(vector<vector<long double>>& a, vector<vector<long double>>& b, 
 	return;
 }
 
+void LoadModel(string init, vector<vector<long double>>& a, vector<vector<long double>>& b, vector<long double>& start)
+{
+	ifstream inp;
+	inp.open(init.c_str());
+	
+	
+		long double temp;
+		start.push_back(0);
+		for(int i=1; i<=N; i++)
+		{	
+			inp >> temp;
+			start.push_back(temp);
+		}
+		vector<long double> tp(N+1);
+		a.push_back(tp);
+		for(int i=1; i<=N; i++)
+		{
+			vector<long double> tp;
+			tp.push_back(0);
+			for(int j=1; j<=N; j++)
+			{
+				inp >> temp;
+				tp.push_back(temp);
+			}
+			a.push_back(tp);
+		}
+		vector<long double> tp2(M+1);
+		b.push_back(tp2);
+		for(int i=1; i<=N; i++)
+		{
+			vector<long double> tp;
+			tp.push_back(0);
+			for(int j=1; j<=M; j++)
+			{
+				inp >> temp;
+				tp.push_back(temp);
+			}
+			b.push_back(tp);
+		}
+
+	
+	return;
+}
+
+void CopyVector(vector<long double>& x, vector<long double>& y)
+{
+	for(int i=0; i<x.size(); i++)
+	{
+		y.push_back(x[i]);
+	}
+	return;
+}
+
+void CopyVector2(vector<vector<long double>>& x, vector<vector<long double>>& y)
+{
+	for(int i=0; i<x.size(); i++)
+	{
+		y.push_back(x[i]);
+	}
+	return;
+}
+
+void AddModel(vector<vector<long double>>& a1, vector<vector<long double>>& b1, vector<long double>& start1, vector<vector<long double>>& a, vector<vector<long double>>& b, vector<long double>& start)
+{
+	for(int i=0; i<=N; i++)
+	{
+		for(int j=0; j<=N; j++)
+		{
+			a1[i][j] += a[i][j];
+		}
+		for(int j=0; j<=M; j++)
+		{
+			b1[i][j] += b[i][j];
+		}
+		start1[i] += start[i];
+	}
+	return;
+
+}
+
+void DivideModel(vector<vector<long double>>& a, vector<vector<long double>>& b, vector<long double>& start, int k)
+{
+	for(int i=0; i<=N; i++)
+	{
+		for(int j=0; j<=N; j++)
+		{
+			a[i][j] /= k;
+		}
+		for(int j=0; j<=M; j++)
+		{
+			b[i][j] /= k;
+		}
+		start[i] /= k ;
+	}
+}
+
+void Train()
+{
+	string init="init.txt";
+	//cout << "File name with initial config:" ;
+	//cin >> init;
+	int k=10;
+	//cout << "Enter number of different variatons of a word to train:";
+	//cin >> k;
+	string models="zero.txt";
+	//cout << "Enter file name of file with lists of inputs:";
+	//cin >> models;
+
+	vector<vector<long double> > a_orig;
+	vector<vector<long double> > b_orig;
+	vector<long double> start_orig;
+	LoadModel(init, a_orig, b_orig, start_orig);
+	vector<vector<long double> > a_new;
+	vector<vector<long double> > b_new;
+	vector<long double> start_new;
+	for(int i=0; i<=N; i++)
+	{
+		vector<long double> temp(N+1, 0);
+		vector<long double> temp2(M+1, 0);
+		a_new.push_back(temp);
+		b_new.push_back(temp2);
+		start_new.push_back(0);
+
+	}
+	
+	
+	ifstream inp;
+	inp.open(models.c_str());
+	string f;
+	for(int i=0; i<k; i++)
+	{
+		inp >> f;
+		cout << f << endl;
+		ifstream ob;
+		ob.open(f.c_str());
+		vector <int> obs;
+		int temp;
+		int T=0;
+		obs.push_back(0);
+		while(!ob.eof())
+		{
+			ob >> temp;
+			obs.push_back(temp);
+			T+=1;
+			
+		}
+		ob.close();
+		vector<vector<long double> > a;
+		vector<vector<long double> > b;
+		vector<long double> start;
+		CopyVector2(a_orig, a);
+		CopyVector2(b_orig, b);
+
+		CopyVector(start_orig, start);
+		vector <vector<long double> > alpha;
+		//cout << "here" << endl;
+		long double old_prob=0;
+		long double prob = ForwardProcedure(a, b, start, obs, T, alpha);
+		cout << prob << endl;
+		int count=0;
+		while(prob-old_prob>(1E-150) || count==0)
+		{
+			cout << count << endl;
+			count++;
+			old_prob = prob;
+			vector<int> states;
+			ViterbiAlgo(a_orig, b_orig, start_orig, obs, T, states);
+			ParameterReestimation(a, b, start, obs, T);
+			alpha.clear();
+			prob = ForwardProcedure(a, b, start, obs, T, alpha);
+			
+			cout << prob << endl;
+			if(count>100)
+				break;
+			
+		}
+		
+		/*for(int i=1; i<=T; i++)
+		{
+			cout << states[i] << " ";
+		}
+		cout << endl;*/
+		
+		
+		
+		
+	
+		AddModel(a_new, b_new, start_new, a, b, start);
 
 
+	}
+	inp.close();
+
+	DivideModel(a_new, b_new, start_new, k);
+
+	ofstream nmod;
+	nmod.open("nmodel.txt");
+	for(int i=1; i<=N; i++)
+	{
+		nmod << start_new[i] << " " ;
+	}
+	nmod << endl;
+
+	for(int i=1; i<=N; i++)
+	{
+		for(int j=1; j<=N; j++)
+		{
+
+			nmod << a_new[i][j] << " " ;
+		}
+
+		nmod << endl;
+	}
+
+	for(int i=1; i<=N; i++)
+	{
+		for(int j=1; j<=M; j++)
+		{
+			nmod << b_new[i][j] << " " ;
+
+		}
+		nmod << endl;
+	}
+	nmod.close();
+
+}
+
+string IdentifyWord(vector<int>& obs, int T)
+{
+	string dirname="models\\*.txt";
+	vector<string> fname;
+	GetAllFiles(fname, dirname);
+	long double best=0;
+	int ind=-1;
+	for(int i=0; i<fname.size(); i++)
+	{
+		//ifstream inp;
+		string path="models\\" + fname[i];
+		vector<vector<long double>> a;
+		vector<vector<long double>> b;
+		vector<long double> start;
+		LoadModel(path, a, b, start);
+
+
+		vector <vector<long double> > alpha;
+		long double prob = ForwardProcedure(a, b, start, obs, T, alpha);
+		if(prob>best)
+		{
+			best=prob;
+			ind = i;
+		}
+
+
+	}
+	return fname[ind].substr(0, fname[ind].size()-4);
+
+}
+
+
+
+void Test()
+{
+	string dirname="test\\*.txt";
+	vector<string> fname;
+	GetAllFiles(fname, dirname);
+	int total=fname.size();
+	int correct=0;
+	for(int i=0; i<fname.size(); i++)
+	{
+		cout << fname[i] << endl;
+		ifstream inp;
+		string path="test\\" + fname[i];
+		inp.open(path.c_str());
+		int temp;
+		vector <int> obs;
+		obs.push_back(0);
+		int T=0;
+		while(!inp.eof())
+		{
+			inp >> temp;
+			if(temp>32)
+				temp=32;
+			obs.push_back(temp);
+			T+=1;
+
+		}
+		string word = IdentifyWord(obs, T);
+		cout << word << endl;
+		size_t found=fname[i].find(word);
+		if (found!=std::string::npos)
+		{
+			cout << "Correct" << endl;
+			correct+=1;
+		}
+		else
+		{
+			cout << "Incorrect" << endl;
+		}
+
+	}
+	cout << "Accuracy: " << double(correct)/total*100 << endl;
+}
 
 
 int _tmain(int argc, _TCHAR* argv[])
 {
-	//LoadObservation(); yet to implement
-	
-
+	//Train();
+	Test();
+	string init;
+	cout << "Done" << endl;
+	cin >> init;
 
 	return 0;
 }
